@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { getQuizForLesson } from '../src/data/quizBank';
 
-test('complete une leçon SQL Injection dans le laboratoire isolé', async ({ page }) => {
+test('termine une leçon SQL Injection avec son quiz de 20 questions', async ({ page }) => {
+  test.setTimeout(60000);
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/');
 
@@ -20,12 +22,14 @@ test('complete une leçon SQL Injection dans le laboratoire isolé', async ({ pa
   await expect(lesson.getByRole('heading', { name: 'Du code fragile au code défensif' })).toBeVisible();
   await lesson.getByRole('button', { name: 'Continuer' }).click();
 
-  await lesson.getByRole('button', { name: 'Utiliser des requêtes paramétrées' }).click();
-  await lesson.getByRole('button', { name: 'Question suivante' }).click();
-  await lesson.getByRole('button', { name: 'Côté serveur, pour chaque ressource' }).click();
-  await lesson.getByRole('button', { name: 'Question suivante' }).click();
-  await lesson.getByRole('button', { name: 'La signature et les claims attendus' }).click();
-  await lesson.getByRole('button', { name: 'Voir mon résultat' }).click();
+  const questions = getQuizForLesson('SQL Injection');
+  expect(questions).toHaveLength(20);
+  for (let index = 0; index < questions.length; index++) {
+    await expect(lesson.getByText(`QUESTION ${index + 1} / 20`)).toBeVisible();
+    await lesson.locator('.quiz-options button').nth(questions[index].correct).click();
+    await lesson.getByRole('button', { name: index === questions.length - 1 ? 'Voir mon résultat' : 'Question suivante' }).click();
+  }
+
   await expect(lesson.getByText('Votre résultat :').locator('..')).toContainText('100 %');
   await expect(lesson.getByRole('heading', { name: 'Bien joué !' })).toBeVisible();
 
